@@ -1,0 +1,21 @@
+title = "Playwright Core Library GitLeaks Config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Global allowlist for known non-secret test strings and generated artifacts"
+paths = [
+  '''(^|/)dist/''',
+  '''(^|/)node_modules/''',
+  '''(^|/)logs/''',
+  '''(^|/)test-results/''',
+  '''(^|/)Automation/'''
+]
+
+regexes = [
+  '''(?i)example\.com''',
+  '''(?i)test@example\.com''',
+  '''(?i)dummy[_-]?token''',
+  '''(?i)sample[_-]?key'''
+]

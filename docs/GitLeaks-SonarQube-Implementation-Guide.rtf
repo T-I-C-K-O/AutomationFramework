@@ -1,0 +1,181 @@
+{\rtf1\ansi\deff0
+{\fonttbl{\f0 Calibri;}{\f1 Consolas;}}
+\fs22
+\b GitLeaks and SonarQube Implementation Guide\b0\par
+\par
+Project: Playwright Core Library\par
+Date: 09-Apr-2026\par
+Audience: QA Automation Engineers, Dev Leads, DevOps, Security\par
+\par
+\b 1. Purpose\b0\par
+This document explains what was added to the repository for security and code quality gating, how it works, what inputs are required, how to run it locally and in CI, and the pros and cons of the approach.\par
+\par
+\b 2. What Was Added\b0\par
+1. .gitleaks.toml\par
+2. sonar-project.properties\par
+3. .gitlab-ci.yml (updated with quality/security/analysis stages)\par
+4. README.md section: Security and Quality Gates\par
+\par
+\b 3. Why These Tools\b0\par
+\b GitLeaks\b0\par
+- Purpose: detect secrets in source code and repository content before merge/publish.\par
+- Detects: API keys, tokens, passwords, private keys, high-entropy secrets.\par
+- Outcome: pipeline fails if secrets are detected.\par
+\par
+\b SonarQube\b0\par
+- Purpose: static analysis for bugs, vulnerabilities, code smells, and quality gate enforcement.\par
+- Detects: maintainability issues, reliability issues, security hotspots, duplication, code quality trends.\par
+- Outcome: pipeline fails if quality gate fails.\par
+\par
+\b 4. Implementation Details by File\b0\par
+\par
+\b 4.1 .gitleaks.toml\b0\par
+- Uses default GitLeaks rules (broad and trusted baseline).\par
+- Adds allowlist paths to skip noisy/generated folders:\par
+  - dist/\par
+  - node_modules/\par
+  - logs/\par
+  - test-results/\par
+  - Automation/\par
+- Adds allowlist regex patterns for known dummy/sample values:\par
+  - example.com\par
+  - test@example.com\par
+  - dummy token patterns\par
+  - sample key patterns\par
+\par
+\b 4.2 sonar-project.properties\b0\par
+- sonar.projectKey = rappit_ps_test_automation_base\par
+- sonar.projectName = ps-test-automation-base\par
+- sonar.sources = src\par
+- sonar.tests = tests\par
+- sonar.exclusions excludes generated/noisy folders (dist, node_modules, logs, test-results, Automation, docs).\par
+- sonar.typescript.tsconfigPath = tsconfig.json for TS analysis stability.\par
+- coverage path set to coverage/lcov.info (used when coverage is generated).\par
+\par
+\b 4.3 .gitlab-ci.yml\b0\par
+Pipeline stages now:\par
+1. quality\par
+2. security\par
+3. build\par
+4. analysis\par
+5. publish\par
+\par
+Jobs added/updated:\par
+- lint (quality): npm ci + npm run lint\par
+- gitleaks (security): gitleaks detect with JSON report artifact\par
+- build (build): npm ci + npm run build\par
+- sonarqube (analysis): sonar-scanner with quality gate wait\par
+- publish (publish): existing manual publish flow kept intact\par
+\par
+Execution scope:\par
+- Runs on merge_requests and branch ps-test-automation-base for the new quality/security jobs.\par
+\par
+\b 4.4 README.md\b0\par
+- Added a clear section explaining:\par
+  - required CI variables\par
+  - pipeline order and behavior\par
+  - local validation commands\par
+  - purpose of each config file\par
+\par
+\b 5. Inputs Required to Run Successfully\b0\par
+\par
+\b 5.1 Required GitLab CI Variables\b0\par
+Add in GitLab: Project Settings -> CI/CD -> Variables\par
+- SONAR_HOST_URL = SonarQube server URL\par
+- SONAR_TOKEN = SonarQube access token with analysis permission\par
+\par
+Recommended flags:\par
+- SONAR_TOKEN should be Masked and Protected\par
+- SONAR_HOST_URL usually Protected\par
+\par
+\b 5.2 SonarQube-side Requirements\b0\par
+- SonarQube server must be reachable by GitLab runners\par
+- Project key should exist or be auto-creatable based on your Sonar permissions\par
+- Token must have execute-analysis rights for this project\par
+\par
+\b 5.3 Runner Requirements\b0\par
+- Docker-capable GitLab runner (for scanner and gitleaks images)\par
+- Internet/network access to pull container images\par
+\par
+\b 6. How It Works in CI\b0\par
+1. Lint checks coding standard.\par
+2. GitLeaks scans repository content for secrets.\par
+3. Build validates TypeScript compilation/package output.\par
+4. SonarScanner sends analysis to SonarQube and waits for gate result.\par
+5. Publish remains manual (existing behavior).\par
+\par
+If any mandatory gate fails (lint, gitleaks, build, sonarqube), pipeline fails before publish.\par
+\par
+\b 7. Local Run Commands\b0\par
+Run from repository root:\par
+\par
+{\f1
+npm ci\par
+npm run lint\par
+npm run build\par
+}\f0\par
+\par
+GitLeaks local:\par
+{\f1
+gitleaks detect --source . --config .gitleaks.toml --redact\par
+}\f0\par
+\par
+Sonar local (if scanner installed and env vars set):\par
+{\f1
+set SONAR_HOST_URL=https://your-sonar-server\par
+set SONAR_TOKEN=your-token\par
+sonar-scanner\par
+}\f0\par
+\par
+\b 8. Pros and Cons\b0\par
+\par
+\b 8.1 Pros\b0\par
+- Early secret leak prevention before merge.\par
+- Standardized quality gate for all contributions.\par
+- Clear audit trail in CI logs and artifacts.\par
+- Reduced manual review effort for common security/quality issues.\par
+- Better engineering discipline through objective pass/fail gates.\par
+- Reusable configuration for other repositories.\par
+\par
+\b 8.2 Cons\b0\par
+- Initial setup overhead (Sonar server/token/project readiness).\par
+- Potential false positives in GitLeaks requiring tuning.\par
+- Pipeline duration increases due to extra stages.\par
+- Sonar quality gate can block legacy-heavy codebases until baselined.\par
+- Requires team adoption and occasional rule maintenance.\par
+\par
+\b 9. Risk and Mitigation\b0\par
+- Risk: False positives in GitLeaks.\par
+  Mitigation: Add narrowly scoped allowlist entries only after validation.\par
+- Risk: Sonar gate fails due to historical technical debt.\par
+  Mitigation: Start with realistic gate thresholds and tighten incrementally.\par
+- Risk: Missing Sonar variables in CI.\par
+  Mitigation: Add protected/masked variables before first pipeline run.\par
+\par
+\b 10. Recommended Rollout Plan\b0\par
+Phase 1 (Baseline):\par
+- Run pipeline, collect findings, classify true vs false positives.\par
+- Fix/rotate any real leaked secrets immediately.\par
+\par
+Phase 2 (Stabilize):\par
+- Tune GitLeaks allowlist minimally.\par
+- Confirm Sonar project key/token permissions and gate behavior.\par
+\par
+Phase 3 (Enforce):\par
+- Keep all gates mandatory for merge requests.\par
+- Periodically review quality profile and exclusions.\par
+\par
+\b 11. Acceptance Criteria\b0\par
+- CI pipeline runs lint, gitleaks, build, sonarqube in sequence.\par
+- gitleaks produces report artifact and fails on real findings.\par
+- sonarqube submits analysis and returns quality gate status.\par
+- publish job remains manual and unaffected by new additions.\par
+\par
+\b 12. Quick Troubleshooting\b0\par
+- Sonar error "Not authorized": verify SONAR_TOKEN and project permissions.\par
+- Sonar error "Unknown host": verify SONAR_HOST_URL and runner network/DNS.\par
+- GitLeaks unexpected findings: inspect gl-gitleaks-report.json and validate before allowlisting.\par
+- CI image pull failure: validate runner internet/proxy/container registry access.\par
+\par
+\b End of Document\b0\par
+}

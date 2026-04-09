@@ -1,0 +1,150 @@
+{
+  "name": "@rappit/ps-test-automation-base",
+  "version": "1.0.16",
+  "description": "Updated the email template to handle the environment variable and added the environment details in the email report",
+  "author": "Rappit PS QA Team",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc && npm run copy:assets",
+    "copy:assets": "copyfiles -u 1 \"src/**/*.{html,hbs,png}\" dist",
+    "build:watch": "tsc --watch",
+    "lint": "eslint . --ext .ts,.js",
+    "lint:fix": "eslint . --ext .ts,.js --fix",
+    "format": "prettier --write \"src/**/*.{ts,js,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,js,json}\"",
+    "clean": "node -e \"const fs=require('fs'); ['dist','node_modules','package-lock.json'].forEach(d=>{if(fs.existsSync(d))fs.rmSync(d,{recursive:true,force:true})});\"",
+    "clean:dist": "node -e \"const fs=require('fs'); if(fs.existsSync('dist'))fs.rmSync('dist',{recursive:true,force:true});\"",
+    "rebuild": "npm run clean && npm install && npm run build",
+    "prepublishOnly": "npm run clean:dist && npm run build",
+    "gcp:auth": "npx google-artifactregistry-auth",
+    "gcp:publish": "npm run prepublishOnly && npm publish",
+    "version:patch": "npm version patch --no-git-tag-version",
+    "version:minor": "npm version minor --no-git-tag-version",
+    "version:major": "npm version major --no-git-tag-version",
+    "version:prerelease": "npm version prerelease --preid=alpha --no-git-tag-version",
+    "version:prepatch": "npm version prepatch --preid=alpha --no-git-tag-version",
+    "version:preminor": "npm version preminor --preid=alpha --no-git-tag-version",
+    "version:premajor": "npm version premajor --preid=alpha --no-git-tag-version"
+  },
+  "keywords": [
+    "playwright",
+    "automation",
+    "testing",
+    "framework",
+    "core-library",
+    "web-testing",
+    "api-testing",
+    "ai-analysis",
+    "test-automation",
+    "evidence-capture",
+    "recovery-mechanisms",
+    "xray-integration",
+    "jira-integration",
+    "typescript",
+    "enterprise-testing"
+  ],
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js"
+    },
+    "./config": {
+      "types": "./dist/config/index.d.ts",
+      "require": "./dist/config/index.js"
+    },
+    "./config/hooks": {
+      "types": "./dist/config/hooks/index.d.ts",
+      "require": "./dist/config/hooks/index.js"
+    },
+    "./steps": {
+      "types": "./dist/steps/index.d.ts",
+      "require": "./dist/steps/index.js"
+    },
+    "./execution": {
+      "types": "./dist/execution/index.d.ts",
+      "require": "./dist/execution/index.js"
+    },
+    "./data": {
+      "types": "./dist/data/index.d.ts",
+      "require": "./dist/data/index.js"
+    },
+    "./helpers": {
+      "types": "./dist/helpers/index.d.ts",
+      "require": "./dist/helpers/index.js"
+    },
+    "./evidence": {
+      "types": "./dist/evidence/index.d.ts",
+      "require": "./dist/evidence/index.js"
+    },
+    "./recovery": {
+      "types": "./dist/recovery/index.d.ts",
+      "require": "./dist/recovery/index.js"
+    },
+    "./reporting": {
+      "types": "./dist/reporting/index.d.ts",
+      "require": "./dist/reporting/index.js"
+    },
+    "./caseLoader": {
+      "types": "./dist/caseLoader/index.d.ts",
+      "require": "./dist/caseLoader/index.js"
+    },
+    "./integrationLibrary": {
+      "types": "./dist/integrationLibrary/index.d.ts",
+      "require": "./dist/integrationLibrary/index.js"
+    },
+    "./ai": {
+      "types": "./dist/ai/index.d.ts",
+      "require": "./dist/ai/index.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "require": "./dist/types.js"
+    }
+  },
+  "peerDependencies": {
+    "@playwright/test": ">=1.57.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.1",
+    "axios": "^1.10.0",
+    "csvtojson": "^2.0.10",
+    "dotenv": "^17.2.3",
+    "nodemailer": "^8.0.1",
+    "open": "^8.4.2",
+    "pdfkit": "^0.17.2",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "@types/node": "^22.18.12",
+    "@types/pdfkit": "^0.17.4",
+    "@typescript-eslint/eslint-plugin": "^8.49.0",
+    "@typescript-eslint/parser": "^8.49.0",
+    "copyfiles": "^2.4.1",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "prettier": "^3.7.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.rappit.io/qab/automationframework.git"
+  },
+  "publishConfig": {
+    "registry": "https://europe-west1-npm.pkg.dev/gp-ps-artifacts-repo-prod/ps-artifacts-fe"
+  }
+}

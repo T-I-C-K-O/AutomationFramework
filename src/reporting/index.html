@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Rappit Test Automation Report - ${baseFile}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { 
+    font-family: Arial, sans-serif; 
+    margin: 0; 
+    padding: 0;
+    background: #f5f5f5; 
+    color: #333;
+  }
+  
+  /* Header */
+  .header {
+    background: #3f6ad8;
+    color: white;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .header-content h1 { 
+    margin: 0; 
+    font-size: 1.4rem; 
+    font-weight: 600;
+  }
+  .header-content .subtitle { 
+    opacity: 0.9; 
+    font-size: 0.9rem; 
+    margin-top: 4px;
+  }
+  
+  /* Main content */
+  .main-content {
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  
+  /* Summary section */
+  .summary-section {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  
+  /* Donut chart */
+  .donut-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .donut {
+    position: relative;
+    width: 140px;
+    height: 140px;
+  }
+  .donut svg {
+    transform: rotate(-90deg);
+    width: 140px;
+    height: 140px;
+  }
+  .donut circle {
+    fill: none;
+    stroke-width: 20;
+  }
+  .donut .bg { stroke: #e0e0e0; }
+  .donut .passed-ring { stroke: #4CAF50; }
+  .donut .failed-ring { stroke: #f44336; }
+  .donut .blocked-ring { stroke: #ff9800; }
+  .donut .unknown-ring { stroke: #9e9e9e; }
+  .donut-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  .donut-center .percent { 
+    font-size: 1.8rem; 
+    font-weight: 700; 
+    color: #4CAF50;
+  }
+  .donut-center .label { 
+    font-size: 0.75rem; 
+    color: #666; 
+    margin-top: 2px;
+  }
+  
+  /* Stats grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 16px;
+  }
+  .stat-card {
+    padding: 16px;
+    border-radius: 8px;
+    text-align: center;
+    transition: transform 0.2s;
+  }
+  .stat-card:hover { transform: translateY(-2px); }
+  .stat-card .value { 
+    font-size: 2rem; 
+    font-weight: 700; 
+    margin-bottom: 4px;
+  }
+  .stat-card .label { 
+    font-size: 0.85rem; 
+    color: #666;
+    font-weight: 500;
+  }
+  .stat-card.total { background: #f5f5f5; }
+  .stat-card.total .value { color: #333; }
+  .stat-card.passed { background: #e8f5e9; }
+  .stat-card.passed .value { color: #4CAF50; }
+  .stat-card.failed { background: #ffebee; }
+  .stat-card.failed .value { color: #f44336; }
+  .stat-card.blocked { background: #fff3e0; }
+  .stat-card.blocked .value { color: #ff9800; }
+  .stat-card.unknown { background: #f5f5f5; }
+  .stat-card.unknown .value { color: #9e9e9e; }
+  
+  /* Progress bar */
+  .progress-section {
+    margin-top: 20px;
+    grid-column: 1 / -1;
+  }
+  .progress-bar {
+    height: 24px;
+    background: #e0e0e0;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+  }
+  .progress-bar .segment {
+    height: 100%;
+    transition: width 0.3s;
+  }
+  .progress-bar .passed-seg { background: #4CAF50; }
+  .progress-bar .failed-seg { background: #f44336; }
+  .progress-bar .blocked-seg { background: #ff9800; }
+  .progress-bar .unknown-seg { background: #9e9e9e; }
+  .progress-legend {
+    display: flex;
+    gap: 20px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+  }
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+  .legend-dot.passed { background: #4CAF50; }
+  .legend-dot.failed { background: #f44336; }
+  .legend-dot.blocked { background: #ff9800; }
+  .legend-dot.unknown { background: #9e9e9e; }
+  
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .search-box {
+    flex: 1;
+    min-width: 250px;
+    position: relative;
+  }
+  .search-box input {
+    width: 100%;
+    padding: 12px 16px 12px 42px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 0.95rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .search-box input:focus {
+    outline: none;
+    border-color: #4CAF50;
+    box-shadow: 0 0 0 3px rgba(76,175,80,0.1);
+  }
+  .search-box::before {
+    content: "🔍";
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1rem;
+  }
+  select {
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    min-width: 150px;
+    font-size: 0.95rem;
+    background: white;
+    cursor: pointer;
+  }
+  select:focus { outline: none; border-color: #4CAF50; }
+  .btn {
+    padding: 12px 20px;
+    border-radius: 8px;
+    border: none;
+    background: #4CAF50;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn:hover { background: #43a047; }
+  .btn-outline {
+    background: white;
+    color: #4CAF50;
+    border: 1px solid #4CAF50;
+  }
+  .btn-outline:hover { background: #e8f5e9; }
+  
+  /* Table */
+  .table-container {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  th, td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+    font-size: 0.9rem;
+  }
+  th {
+    background: #fafafa;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    color: #333;
+  }
+  tbody tr { 
+    transition: background 0.15s; 
+    cursor: pointer; 
+  }
+  tbody tr:hover { background: #f0fff4; }
+  tbody tr:last-child td { border-bottom: none; }
+  
+  /* Badges */
+  .badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge.passed { background: #e8f5e9; color: #2e7d32; }
+  .badge.failed { background: #ffebee; color: #c62828; }
+  .badge.blocked { background: #fff3e0; color: #e65100; }
+  .badge.unknown { background: #f5f5f5; color: #616161; }
+  
+  /* Modal */
+  .modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+  }
+  .modal.active { display: flex; }
+  .modal .panel {
+    background: white;
+    border-radius: 12px;
+    max-width: 700px;
+    width: 100%;
+    max-height: 85vh;
+    overflow: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #4CAF50;
+    color: white;
+    border-radius: 12px 12px 0 0;
+  }
+  .modal-header h3 { margin: 0; font-size: 1.1rem; }
+  .modal-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+  }
+  .modal-close:hover { background: rgba(255,255,255,0.3); }
+  .modal-body { padding: 24px; }
+  .detail-row {
+    display: flex;
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-label {
+    width: 140px;
+    font-weight: 600;
+    color: #666;
+    flex-shrink: 0;
+  }
+  .detail-value { flex: 1; word-break: break-word; }
+  
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 20px;
+    color: #999;
+    font-size: 0.85rem;
+    margin-top: 24px;
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    .header { padding: 16px; }
+    .header-content h1 { font-size: 1.1rem; }
+    .main-content { padding: 16px; }
+    .summary-section { 
+      grid-template-columns: 1fr; 
+      padding: 16px;
+    }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .stat-card .value { font-size: 1.5rem; }
+    th, td { padding: 10px 12px; font-size: 0.85rem; }
+    .controls { flex-direction: column; }
+    .search-box { min-width: 100%; }
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-content">
+      <h1>Rappit Test Automation Report</h1>
+      <div class="subtitle">Sheet: ${sheetName} — File: ${baseFile}</div>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="summary-section">
+      <div class="donut-container">
+        <div class="donut">
+          <svg viewBox="0 0 140 140">
+            <circle class="bg" cx="70" cy="70" r="60"></circle>
+            <circle class="passed-ring" cx="70" cy="70" r="60" id="passedRing" stroke-dasharray="0 377"></circle>
+          </svg>
+          <div class="donut-center">
+            <div class="percent" id="passRate">0%</div>
+            <div class="label">Pass Rate</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="stats-grid">
+        <div class="stat-card total">
+          <div class="value" id="total">${total}</div>
+          <div class="label">Total Tests</div>
+        </div>
+        <div class="stat-card passed">
+          <div class="value" id="passed">${passed}</div>
+          <div class="label">Passed</div>
+        </div>
+        <div class="stat-card failed">
+          <div class="value" id="failed">${failed}</div>
+          <div class="label">Failed</div>
+        </div>
+        <div class="stat-card blocked">
+          <div class="value" id="blocked">${blocked}</div>
+          <div class="label">Blocked</div>
+        </div>
+        <div class="stat-card unknown">
+          <div class="value" id="unknown">${unknown}</div>
+          <div class="label">Other</div>
+        </div>
+      </div>
+      
+      <div class="progress-section">
+        <div class="progress-bar" id="progressBar">
+          <div class="segment passed-seg" id="passedSeg"></div>
+          <div class="segment failed-seg" id="failedSeg"></div>
+          <div class="segment blocked-seg" id="blockedSeg"></div>
+          <div class="segment unknown-seg" id="unknownSeg"></div>
+        </div>
+        <div class="progress-legend">
+          <div class="legend-item"><span class="legend-dot passed"></span> Passed</div>
+          <div class="legend-item"><span class="legend-dot failed"></span> Failed</div>
+          <div class="legend-item"><span class="legend-dot blocked"></span> Blocked</div>
+          <div class="legend-item"><span class="legend-dot unknown"></span> Other</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="search-box">
+        <input id="search" type="search" placeholder="Search test id, summary, or any column..." />
+      </div>
+      <select id="statusFilter">
+        <option value="">All Statuses</option>
+        <option value="PASSED">Passed</option>
+        <option value="FAILED">Failed</option>
+        <option value="BLOCKED">Blocked</option>
+        <option value="UNKNOWN">Unknown</option>
+      </select>
+      <button class="btn btn-outline" id="refreshBtn">🔄 Refresh</button>
+      <a href="./${outName}" download class="btn">📥 Download HTML</a>
+    </div>
+
+    <div class="table-container">
+      <table id="casesTable">
+        <thead><tr id="thead"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    
+    <div class="footer">
+      Rappit Test Automation Report | Generated: ${new Date().toLocaleString()}
+    </div>
+  </div>
+
+  <div class="modal" id="modal">
+    <div class="panel">
+      <div class="modal-header">
+        <h3 id="modalTitle">Test Details</h3>
+        <button class="modal-close" id="modalClose">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+<script>
+  // Embedded data
+  const data = `${jsonStr}`;
+
+  function updateSummaryVisuals() {
+    const total = parseInt(document.getElementById('total').textContent) || 0;
+    const passed = parseInt(document.getElementById('passed').textContent) || 0;
+    const failed = parseInt(document.getElementById('failed').textContent) || 0;
+    const blocked = parseInt(document.getElementById('blocked').textContent) || 0;
+    const unknown = parseInt(document.getElementById('unknown').textContent) || 0;
+
+    // Update pass rate
+    const passRate = total > 0 ? Math.round((passed / total) * 100) : 0;
+    document.getElementById('passRate').textContent = passRate + '%';
+
+    // Update donut chart
+    const circumference = 2 * Math.PI * 60; // r=60
+    const passedDash = (passed / total) * circumference || 0;
+    document.getElementById('passedRing').setAttribute('stroke-dasharray', passedDash + ' ' + circumference);
+
+    // Update progress bar
+    if (total > 0) {
+      document.getElementById('passedSeg').style.width = (passed / total * 100) + '%';
+      document.getElementById('failedSeg').style.width = (failed / total * 100) + '%';
+      document.getElementById('blockedSeg').style.width = (blocked / total * 100) + '%';
+      document.getElementById('unknownSeg').style.width = (unknown / total * 100) + '%';
+    }
+  }
+
+  function renderTable(filterTxt = "", statusFilter = "") {
+    const cols = data.columns;
+    const rows = data.rows;
+    const tbody = document.getElementById('tbody');
+    const thead = document.getElementById('thead');
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+
+    // Header
+    for (const c of cols) {
+      const th = document.createElement('th');
+      th.textContent = c;
+      thead.appendChild(th);
+    }
+    const thActions = document.createElement('th');
+    thActions.textContent = 'Status';
+    thead.appendChild(thActions);
+
+    const q = filterTxt.trim().toLowerCase();
+    let counts = { total: 0, passed: 0, failed: 0, blocked: 0, unknown: 0 };
+
+    for (const r of rows) {
+      const rowText = JSON.stringify(r).toLowerCase();
+      if (q && !rowText.includes(q)) continue;
+
+      // status
+      let status = "UNKNOWN";
+      if (data.resultCol) {
+        const val = (r[data.resultCol] || "").toString().trim().toUpperCase();
+        if (/PASS|PASSED/i.test(val)) status = "PASSED";
+        else if (/FAIL|FAILED/i.test(val)) status = "FAILED";
+        else if (/BLOCK|BLOCKED/i.test(val)) status = "BLOCKED";
+      }
+
+      if (statusFilter && statusFilter !== "" && statusFilter !== status) continue;
+
+      counts.total++;
+      if (status === 'PASSED') counts.passed++;
+      else if (status === 'FAILED') counts.failed++;
+      else if (status === 'BLOCKED') counts.blocked++;
+      else counts.unknown++;
+
+      const tr = document.createElement('tr');
+
+      for (const c of cols) {
+        const td = document.createElement('td');
+        const v = r[c] === undefined || r[c] === null ? "" : r[c];
+        td.textContent = v;
+        tr.appendChild(td);
+      }
+
+      const tdStatus = document.createElement('td');
+      const span = document.createElement('span');
+      span.className = 'badge ' + status.toLowerCase();
+      span.textContent = status;
+      tdStatus.appendChild(span);
+      tr.appendChild(tdStatus);
+
+      // clicking row shows details
+      tr.addEventListener('click', () => {
+        const title = (data.testIdCol && r[data.testIdCol]) ? r[data.testIdCol] : '(no id)';
+        document.getElementById('modalTitle').textContent = title + ' - Test Details';
+        const body = document.getElementById('modalBody');
+        body.innerHTML = '';
+        for (const c of cols) {
+          const dd = document.createElement('div');
+          dd.className = 'detail-row';
+          dd.innerHTML = '<div class="detail-label">' + c + '</div><div class="detail-value">' + (r[c] || '-') + '</div>';
+          body.appendChild(dd);
+        }
+        const statusDiv = document.createElement('div');
+        statusDiv.className = 'detail-row';
+        statusDiv.innerHTML = '<div class="detail-label">Status</div><div class="detail-value"><span class="badge ' + status.toLowerCase() + '">' + status + '</span></div>';
+        body.appendChild(statusDiv);
+
+        document.getElementById('modal').classList.add('active');
+      });
+
+      tbody.appendChild(tr);
+    }
+
+    // Update summary counts when filtering
+    if (filterTxt || statusFilter) {
+      document.getElementById('total').textContent = counts.total;
+      document.getElementById('passed').textContent = counts.passed;
+      document.getElementById('failed').textContent = counts.failed;
+      document.getElementById('blocked').textContent = counts.blocked;
+      document.getElementById('unknown').textContent = counts.unknown;
+      updateSummaryVisuals();
+    }
+  }
+
+  document.getElementById('search').addEventListener('input', (e) => {
+    renderTable(e.target.value, document.getElementById('statusFilter').value);
+  });
+  document.getElementById('statusFilter').addEventListener('change', (e) => {
+    renderTable(document.getElementById('search').value, e.target.value);
+  });
+
+  document.getElementById('modalClose').addEventListener('click', () => {
+    document.getElementById('modal').classList.remove('active');
+  });
+  
+  document.getElementById('modal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) {
+      e.currentTarget.classList.remove('active');
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.getElementById('modal').classList.remove('active');
+    }
+  });
+
+  document.getElementById('refreshBtn').addEventListener('click', () => location.reload());
+
+  // initial render
+  renderTable();
+  updateSummaryVisuals();
+
+</script>
+</body>
+</html>

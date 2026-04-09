@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+    .header { background: {{statusColor}}; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
+    .summary { display: flex; justify-content: space-around; margin: 20px 0; }
+    .stat { text-align: center; padding: 15px; background: white; border-radius: 8px; min-width: 80px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .stat-value { font-size: 28px; font-weight: bold; }
+    .stat-label { font-size: 12px; color: #666; text-transform: uppercase; }
+    .passed { color: #28a745; }
+    .failed { color: #dc3545; }
+    .skipped { color: #ffc107; }
+    .footer { background: #333; color: white; padding: 15px; text-align: center; font-size: 12px; border-radius: 0 0 8px 8px; }
+    .progress-bar { height: 20px; background: #f0f0f0; border-radius: 10px; overflow: hidden; margin: 15px 0; }
+    .progress { height: 100%; background: #28a745; width: {{passRate}}%; }
+    table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+    th { background: #f5f5f5; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0;">Rappit Test Automation Report</h1>
+      <p style="margin: 5px 0 0 0; font-size: 18px;">{{statusText}}</p>
+    </div>
+    
+    <div class="content">
+      <h2 style="margin-top: 0;">Summary</h2>
+      
+      <table style="width:100%;border:none;margin:0;">
+        <tr>
+          <td style="vertical-align:top;border:none;padding:0;">
+            <div class="summary" style="flex-wrap:wrap;justify-content:flex-start;gap:10px;">
+              <div class="stat">
+                <div class="stat-value">{{total}}</div>
+                <div class="stat-label">Total</div>
+              </div>
+              <div class="stat">
+                <div class="stat-value passed">{{passed}}</div>
+                <div class="stat-label">Passed</div>
+              </div>
+              <div class="stat">
+                <div class="stat-value failed">{{failed}}</div>
+                <div class="stat-label">Failed</div>
+              </div>
+              <div class="stat">
+                <div class="stat-value skipped">{{skipped}}</div>
+                <div class="stat-label">Skipped</div>
+              </div>
+            </div>
+          </td>
+          <td style="vertical-align:top;border:none;padding:0;width:180px;text-align:center;">
+            <img src="{{chartUrl}}" alt="Test Results Pie Chart" width="150" height="150" style="display:block;margin:0 auto;"/>
+            <div style="margin-top:10px;">
+              <span style="display:inline-block;width:12px;height:12px;background:#28a745;border-radius:2px;margin-right:4px;"></span><span style="font-size:11px;color:#666;">Pass ({{passed}})</span>
+              <span style="display:inline-block;width:12px;height:12px;background:#dc3545;border-radius:2px;margin-left:8px;margin-right:4px;"></span><span style="font-size:11px;color:#666;">Fail ({{failed}})</span>
+              <span style="display:inline-block;width:12px;height:12px;background:#ffc107;border-radius:2px;margin-left:8px;margin-right:4px;"></span><span style="font-size:11px;color:#666;">Skip ({{skipped}})</span>
+            </div>
+          </td>
+        </tr>
+      </table>
+      
+      <div class="progress-bar">
+        <div class="progress"></div>
+      </div>
+      <p style="text-align: center; color: #666; margin: 0;">Pass Rate: <strong>{{passRate}}%</strong></p>
+      
+      <table>
+        <tr>
+          <th>Metric</th>
+          <th>Value</th>
+        </tr>
+        <tr>
+          <td>Total Execution Time</td>
+          <td>{{duration}}</td>
+        </tr>
+        <tr>
+          <td>Browser</td>
+          <td>{{browsers}}</td>
+        </tr>
+        <tr>
+          <td>Environment</td>
+          <td>{{environment}}</td>
+        </tr>
+        <tr>
+          <td>Execution Time</td>
+          <td>{{executionTime}}</td>
+        </tr>
+      </table>
+      
+      {{testCaseTable}}
+      
+      <p style="color: #666; font-size: 14px; margin-top: 20px;">
+        📎 See attached report files for detailed results.
+      </p>
+    </div>
+    
+    <div class="footer">
+      <p style="margin: 0;">Automated Test Report - Rappit Automation Framework - HOYER</p>
+      <p style="margin: 5px 0 0 0;">Generated on {{generatedTime}}</p>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,10 @@
+# GCP Artifact Registry Configuration
+# Copy this file to .npmrc and update the values
+
+# Replace these placeholders:
+# - REGION: your GCP region (e.g., us-central1, asia-south1)
+# - PROJECT_ID: your GCP project ID
+# - REPOSITORY_NAME: your Artifact Registry repository name
+
+@rappit:registry=https://REGION-npm.pkg.dev/PROJECT_ID/REPOSITORY_NAME/
+//REGION-npm.pkg.dev/PROJECT_ID/REPOSITORY_NAME/:always-auth=true

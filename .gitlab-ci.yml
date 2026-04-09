@@ -1,0 +1,185 @@
+# GitLab CI/CD for Playwright Core Library
+# Builds and publishes an npm package to GCP Artifact Registry
+
+stages:
+  - quality
+  - security
+  - build
+  - analysis
+  - publish
+
+variables:
+  NODE_VERSION: "18"
+  VERSION_BUMP: "patch"  # Options: patch, minor, major, prerelease, prepatch, preminor, premajor
+
+# -------------------------
+# QUALITY STAGE
+# -------------------------
+lint:
+  stage: quality
+  image: node:${NODE_VERSION}
+  script:
+    - echo "📦 Installing dependencies"
+    - npm ci
+    - echo "🔍 Linting"
+    - npm run lint
+  only:
+    - ps-test-automation-base
+    - merge_requests
+
+# -------------------------
+# SECURITY STAGE
+# -------------------------
+gitleaks:
+  stage: security
+  image:
+    name: zricethezav/gitleaks:v8.24.2
+    entrypoint: [""]
+  script:
+    - echo "🔐 Running GitLeaks secret scan"
+    - gitleaks version
+    - gitleaks detect --source . --config .gitleaks.toml --redact --report-format json --report-path gl-gitleaks-report.json --exit-code 1
+  artifacts:
+    when: always
+    paths:
+      - gl-gitleaks-report.json
+    expire_in: 1 week
+  only:
+    - ps-test-automation-base
+    - merge_requests
+
+# -------------------------
+# BUILD STAGE
+# -------------------------
+build:
+  stage: build
+  image: node:${NODE_VERSION}
+  script:
+    - echo "📦 Installing dependencies"
+    - npm ci
+
+    - echo "🔨 Building"
+    - npm run build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 week
+  only:
+    - ps-test-automation-base
+    - merge_requests
+
+# -------------------------
+# ANALYSIS STAGE
+# -------------------------
+sonarqube:
+  stage: analysis
+  image:
+    name: sonarsource/sonar-scanner-cli:latest
+    entrypoint: [""]
+  variables:
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+    GIT_DEPTH: "0"
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - .sonar/cache
+  script:
+    - echo "📊 Running SonarQube analysis"
+    - sonar-scanner -Dsonar.qualitygate.wait=true
+  only:
+    - ps-test-automation-base
+    - merge_requests
+
+# -------------------------
+# PUBLISH STAGE
+# -------------------------
+publish:
+  stage: publish
+  image: node:18-bullseye
+
+  # GitLab → GCP OIDC token
+  id_tokens:
+    GITLAB_OIDC_TOKEN:
+      aud: "//iam.googleapis.com/projects/413371879920/locations/global/workloadIdentityPools/gp-rappit-prod-wif-idp/providers/rappit-gitlab"
+
+  variables:
+    AUTH_DIR: "${CI_PROJECT_DIR}/_auth"
+    NPM_REGISTRY: "europe-west1-npm.pkg.dev"
+    GCP_PROJECT_ID: "gp-ps-artifacts-repo-prod"
+    NPM_REPO: "ps-artifacts-fe"
+  script:
+    # -------------------------
+    # Install gcloud
+    # -------------------------
+    - apt-get update
+    - apt-get install -y curl apt-transport-https ca-certificates gnupg
+    - curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+    - echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
+        | tee /etc/apt/sources.list.d/google-cloud-sdk.list
+    - apt-get update && apt-get install -y google-cloud-cli
+
+    # -------------------------
+    # GCP AUTH via Workload Identity
+    # -------------------------
+    - mkdir -p "${AUTH_DIR}"
+    - echo "${GITLAB_OIDC_TOKEN}" > "${AUTH_DIR}/oidc.jwt"
+    - gcloud iam workload-identity-pools create-cred-config "${GCP_WORKLOAD_IDENTITY_PROVIDER}" --service-account="${SERVICE_ACCOUNT_EMAIL}" --credential-source-file="${AUTH_DIR}/oidc.jwt" --output-file="${AUTH_DIR}/gcp-creds.json"
+    - export GOOGLE_APPLICATION_CREDENTIALS="${AUTH_DIR}/gcp-creds.json"
+    - gcloud auth login --cred-file="${AUTH_DIR}/gcp-creds.json"
+    - gcloud auth list
+    - gcloud config set project "${GCP_PROJECT_ID}"
+
+    # -------------------------
+    # NPM AUTH (CRITICAL PART)
+    # -------------------------
+    - echo "🔑 Generating npm auth"
+    - export NPM_TOKEN="$(gcloud auth print-access-token)"
+    # - echo "NPM_TOKEN=${NPM_TOKEN}"
+
+    - |
+      cat > .npmrc <<EOF
+      @rappit:registry=https://${NPM_REGISTRY}/${GCP_PROJECT_ID}/${NPM_REPO}/
+      //${NPM_REGISTRY}/${GCP_PROJECT_ID}/${NPM_REPO}/:_authToken=${NPM_TOKEN}
+      always-auth=true
+      EOF
+
+    - npm config list
+
+    # -------------------------
+    # BUILD & PUBLISH
+    # -------------------------
+    - npm ci
+    - npm run build
+    
+    # Version management and publishing
+    - |
+      CURRENT_VERSION=$(node -p "require('./package.json').version")
+      echo "Current version: ${CURRENT_VERSION}"
+      
+      if [ "${VERSION_BUMP}" = "patch" ]; then
+        npm run version:patch
+      elif [ "${VERSION_BUMP}" = "minor" ]; then
+        npm run version:minor
+      elif [ "${VERSION_BUMP}" = "major" ]; then
+        npm run version:major
+      elif [ "${VERSION_BUMP}" = "prerelease" ]; then
+        npm run version:prerelease
+      elif [ "${VERSION_BUMP}" = "prepatch" ]; then
+        npm run version:prepatch
+      elif [ "${VERSION_BUMP}" = "preminor" ]; then
+        npm run version:preminor
+      elif [ "${VERSION_BUMP}" = "premajor" ]; then
+        npm run version:premajor
+      else
+        echo "Invalid VERSION_BUMP: ${VERSION_BUMP}. Using patch as default."
+        npm run version:patch
+      fi
+      
+      NEW_VERSION=$(node -p "require('./package.json').version")
+      echo "Publishing version: ${NEW_VERSION}"
+      
+      npm publish --ignore-scripts
+
+  only:
+    - ps-test-automation-base
+  when: manual
